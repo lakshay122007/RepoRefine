@@ -12,6 +12,8 @@ query($username: String!) {
   user(login: $username) {
     login
     name
+    avatarUrl
+    bio
     followers { totalCount }
     contributionsCollection {
       contributionCalendar {
@@ -37,10 +39,12 @@ query($username: String!) {
       totalCount
       nodes {
         name
+        description
         stargazerCount
         forkCount
         pushedAt
         primaryLanguage { name }
+        licenseInfo { name }
         defaultBranchRef {
           target {
             ... on Commit {
