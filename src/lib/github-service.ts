@@ -81,6 +81,7 @@ export async function getProfileData(username: string): Promise<Partial<ProfileA
         description: repo.description || "",
         language: repo.primaryLanguage?.name || "Unknown",
         stars: repo.stargazerCount,
+        forks: repo.forkCount,
         lastUpdated: new Date(repo.pushedAt).toLocaleDateString(),
         issues,
         score: Math.max(0, score)
@@ -162,8 +163,7 @@ export async function getProfileData(username: string): Promise<Partial<ProfileA
       stats: {
         totalRepos: user.stats.totalCount, 
         totalStars: analyzedRepos.reduce((acc, r) => acc + r.stars, 0),
-        forks: analyzedRepos.reduce((acc, r) => acc + (r as any).forkCount || 0, 0),
-      },
+        forks: analyzedRepos.reduce((acc, r) => acc + r.forks, 0),      },
       // Return all analyzed repos
       repos: analyzedRepos,
       redFlags: analyzedRepos.flatMap(r => r.issues).filter((v, i, a) => a.indexOf(v) === i).slice(0, 5),
