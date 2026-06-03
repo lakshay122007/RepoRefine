@@ -35,6 +35,7 @@ const PROFILE_QUERY = `
           pushedAt
           primaryLanguage { name }
           licenseInfo { name }
+          openIssues: issues(states: OPEN) { totalCount }
           object(expression: "HEAD:README.md") {
             ... on Blob { text }
           }
@@ -76,12 +77,17 @@ export async function getProfileData(username: string): Promise<Partial<ProfileA
       const daysSincePush = (Date.now() - lastPush.getTime()) / (1000 * 3600 * 24);
       if (daysSincePush > 365) { issues.push("Inactive > 1yr"); score -= 10; }
 
+      const openIssueCount = repo.openIssues?.totalCount || 0;
+      if (openIssueCount > 10) { issues.push(`${openIssueCount} stale open issues`); score -= 15; }
+      else if (openIssueCount > 5) { issues.push(`${openIssueCount} open issues`); score -= 5; }
+
       return {
         name: repo.name,
         description: repo.description || "",
         language: repo.primaryLanguage?.name || "Unknown",
         stars: repo.stargazerCount,
         forks: repo.forkCount,
+        openIssues: openIssueCount,
         lastUpdated: new Date(repo.pushedAt).toLocaleDateString(),
         issues,
         score: Math.max(0, score)
