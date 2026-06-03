@@ -6,7 +6,7 @@ from .analytics import aggregate_activity
 from .github_graphql import GitHubGraphQLError, fetch_github_analytics
 from .scoring import score_recruiter_readiness
 
-app = FastAPI(title="RepoRefine Analytics API", version="0.1.0")
+app = FastAPI(title="RepoRefine Analytics API", version="0.2.0")
 
 
 @app.get("/health")
@@ -21,13 +21,15 @@ async def analyze_developer(username: str) -> dict:
         aggregated = aggregate_activity(user_data)
         scoring = score_recruiter_readiness(aggregated)
         return {
-            "developer": {
-                "login": user_data.get("login"),
-                "name": user_data.get("name"),
-                "followers": user_data.get("followers", {}).get("totalCount", 0),
-            },
+            "developer": aggregated["profile"],
             "analytics": {
-                k: v for k, v in aggregated.items() if k != "commit_messages"
+                "repository_count": aggregated["repository_count"],
+                "commit_count_sample": aggregated["commit_count_sample"],
+                "total_contributions_last_year": aggregated["total_contributions_last_year"],
+                "inactive_repository_count": aggregated["inactive_repository_count"],
+                "top_languages": aggregated["top_languages"],
+                "repository_summaries": aggregated["repository_summaries"],
+                "red_flags": aggregated["red_flags"],
             },
             "recruiter_readiness": scoring,
         }

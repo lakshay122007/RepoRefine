@@ -11,6 +11,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<ProfileAnalysis | null>(null);
   const [error, setError] = useState("");
+  const [lastInput, setLastInput] = useState<{ username: string; persona: string } | null>(null);
 
   async function handleSubmit(formData: FormData) {
     setLoading(true);
@@ -30,7 +31,24 @@ export default function Home() {
       setLoading(false);
     }
   }
+}
 
+const handleRefresh = async () => {
+  if (!lastInput) return;
+  setLoading(true);
+  setError("");
+  try {
+    const formData = new FormData();
+    formData.set("username", lastInput.username);
+    formData.set("persona", lastInput.persona);
+    const result = await analyzeProfile(formData);
+    setData(result);
+  } catch (e) {
+    setError("Could not analyze profile. Check username or try again later.");
+  } finally {
+    setLoading(false);
+  }
+};
   // Reset state to go back to home
   const handleReset = () => {
     setData(null);
@@ -63,16 +81,25 @@ export default function Home() {
           </div>
 
           {/* BACK BUTTON: Only shows when data is present */}
-          {data && (
-            <button 
-              onClick={handleReset}
-              className="flex items-center gap-2 text-sm font-medium text-slate-400 hover:text-white transition bg-slate-800/50 hover:bg-slate-800 px-4 py-2 rounded-full border border-slate-700"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Go Back
-            </button>
-          )}
-        </div>
+{data && (
+  <div className="flex items-center gap-2">
+    <button
+      onClick={handleRefresh}
+      disabled={loading}
+      className="flex items-center gap-2 text-sm font-medium text-slate-400 hover:text-white transition bg-slate-800/50 hover:bg-slate-800 px-4 py-2 rounded-full border border-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+    >
+      {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCcw className="w-4 h-4" />}
+      {loading ? "Refreshing..." : "Refresh"}
+    </button>
+    <button 
+      onClick={handleReset}
+      className="flex items-center gap-2 text-sm font-medium text-slate-400 hover:text-white transition bg-slate-800/50 hover:bg-slate-800 px-4 py-2 rounded-full border border-slate-700"
+    >
+      <ArrowLeft className="w-4 h-4" />
+      Go Back
+    </button>
+  </div>
+)}        </div>
       </nav>
 
       <div className="max-w-6xl mx-auto p-4 md:p-8 space-y-12">
