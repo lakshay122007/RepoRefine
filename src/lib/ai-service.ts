@@ -1,5 +1,4 @@
-
-import { ProfileAnalysis, Persona } from "@/types";
+import { ProfileAnalysis, Persona, RepoLinkAudit, SuggestedIssue } from "@/types";
 
 type GroqMessage = {
   role: "system" | "user" | "assistant";
@@ -76,5 +75,59 @@ data: Partial<ProfileAnalysis>,
   return {
     commentary: content.commentary || "Could not generate review.",
     roadmap: content.roadmap || ["Improve README quality", "Add tests", "Increase commit consistency"],
+  };
+}
+
+export async function generateRepoReadme(
+  audit: RepoLinkAudit,
+  templateReadme: string,
+  envKeys: string[]
+): Promise<{
+  readme: string;
+  improvementSummary: string;
+  suggestedIssues: SuggestedIssue[];
+}> {
+  const systemPrompt = `
+    You are a technical writer improving open-source README files.
+    Generate a polished README based ONLY on the repository audit data provided.
+    Do NOT invent install commands, scripts, or dependencies that are not in the audit.
+    If information is missing, use a placeholder like "> Not detected — add instructions here."
+    
+    Repository: ${audit.owner}/${audit.repo}
+    Description: ${audit.metadata.description || "None"}
+    Tech stack: ${JSON.stringify(audit.techStack)}
+    Config files found: ${audit.signals.configFiles.join(", ")}
+    npm scripts: ${JSON.stringify(audit.signals.scripts)}
+    Environment keys: ${envKeys.join(", ") || "none"}
+    README sections found: ${audit.readme.sectionsFound.join(", ")}
+    README sections missing: ${audit.readme.sectionsMissing.join(", ")}
+    Health issues: ${audit.health.issues.join(", ")}
+    Existing README (truncated): ${audit.readme.content.slice(0, 3000)}
+    Template draft:
+    ${templateReadme.slice(0, 4000)}
+    
+    Output strictly valid JSON:
+    {
+      "readme": "full markdown README content",
+      "improvementSummary": "2-3 sentences on documentation gaps and priorities",
+      "suggestedIssues": [
+        {
+          "title": "issue title",
+          "body": "issue body in markdown",
+          "labels": ["documentation"],
+          "priority": "high"
+        }
+      ]
+    }
+    Limit suggestedIssues to 3 repo-specific items not already obvious from generic templates.
+  `;
+
+  const rawContent = await callGroq([{ role: "system", content: systemPrompt }]);
+  const content = JSON.parse(rawContent || "{}");
+
+  return {
+    readme: content.readme || templateReadme,
+    improvementSummary: content.improvementSummary || "",
+    suggestedIssues: (content.suggestedIssues || []).slice(0, 3),
   };
 }
